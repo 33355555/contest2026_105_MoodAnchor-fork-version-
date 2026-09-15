@@ -1,0 +1,29 @@
+config LVX_USE_HUANGSHAN_HAL
+	bool "Huangshan Pi hardware interface and demo"
+	default n
+	depends on ADC && I2C && PWM && LCD && VIDEO_FB && DRIVERS_BLUETOOTH
+	select UART_BTH4
+	---help---
+		Build the reusable SF32LB52 Huangshan Pi hardware interface and the
+		`huangshan_hal_demo` NSH command. The official vendor_sifli BSP must
+		be selected with the lckfb_huangshan_pi nsh configuration. Enabling
+		this option also enables the H:4 pseudo-device required by the BLE
+		wrapper (`/dev/ttyHCI0`).
+
+config LVX_USE_DEMO_MOOD_ANCHOR
+	bool "MoodAnchor - skin conductance / motion watch application"
+	default n
+	depends on GRAPHICS_LVGL
+	depends on LV_USE_NUTTX
+	depends on LVX_USE_HUANGSHAN_HAL
+	depends on WIRELESS_BLUETOOTH_HOST
+	---help---
+		Build the MoodAnchor native application (NSH command `mood_anchor`).
+		It runs on the openvela graphics framework (LVGL + lv_nuttx, the
+		same path as the official lvgldemo / mini_memo demos) and shows the
+		board sensors: skin conductance (GSR) on /dev/adc1 and the LSM6DSL
+		IMU / microphone.  The optical heart-rate and SpO2 module was
+		removed from the design.
+
+		Requires CONFIG_GRAPHICS_LVGL and CONFIG_LV_USE_NUTTX, which the
+		official lckfb_huangshan_pi nsh configuration already provides.
