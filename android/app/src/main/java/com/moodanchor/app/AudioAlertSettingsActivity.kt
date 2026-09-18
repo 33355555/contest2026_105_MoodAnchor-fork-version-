@@ -42,13 +42,13 @@ class AudioAlertSettingsActivity : AppCompatActivity() {
         })
         content.addView(MoodUi.space(this, 20))
         content.addView(MoodUi.title(this, "钟声设置", 29f))
-        content.addView(MoodUi.body(this, "在情绪即将失控时，为自己留出一小段暂停。你可以选择一段熟悉的声音、白噪音或音乐，作为是非钟的私密钟声。", 15f).apply {
+        content.addView(MoodUi.body(this, "在需要时，为自己留出一小段暂停。你可以主动选择一段熟悉的声音、白噪音或音乐，作为是非钟的提醒音频。", 15f).apply {
             setPadding(0, dp(8), 0, dp(22))
         })
 
         val settingCard = MoodUi.card(this)
         enableSwitch = Switch(this).apply {
-            text = "启用私密钟声"
+            text = "启用事件音频提醒"
             textSize = 17f
             isChecked = BluetoothAudioAlert.enabled(this@AudioAlertSettingsActivity)
         }
@@ -56,7 +56,7 @@ class AudioAlertSettingsActivity : AppCompatActivity() {
         settingCard.addView(MoodUi.space(this, 12))
         fileDescription = MoodUi.body(this, "", 14f)
         settingCard.addView(fileDescription)
-        settingCard.addView(MoodUi.body(this, "触发方式：手表确认一次情绪激动事件后，手机仅在已连接蓝牙耳机时播放钟声。为避免打扰身边的人，手机扬声器绝不会播放；未连接耳机时将自动跳过。", 12f).apply {
+        settingCard.addView(MoodUi.body(this, "触发方式：主动启用并选择音频后，手表确认事件可请求播放。请求前检查蓝牙耳机连接状态，未检测到耳机则跳过，不主动改用扬声器。播放后的输出由系统路由决定，请留意耳机断连或输出切换。", 12f).apply {
             setPadding(0, dp(12), 0, 0)
         })
         settingCard.addView(MoodUi.space(this, 14))

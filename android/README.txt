@@ -1,15 +1,31 @@
-MoodAnchor Android MVP
+MoodAnchor Android 交互原型
 
-功能：模拟/接收黄山派确认事件，记录事件，发出 Android 通知，点击进入舒缓对话页。
+功能：接收黄山派 BLE 事件，等待用户确认后记录并通知，提供日历、音频设置和陪伴对话入口。
 
-当前状态：可导入 Android Studio 的 Kotlin 工程；大模型使用 LocalStubGateway 占位，BLE 服务保留 WatchBleService 接入点。
+演示数据：
+“模拟一次确认事件”使用固定分数 0.74 和演示阈值，仅用于展示记录、通知与交互。
+该分数不是实测概率；真实模型概率需在手表完成算法部署、输入校准和验证后计算并上报。
+当前演示记录不作为算法性能证据。
 
-运行步骤：
-1. 安装 Android Studio（选择 Android SDK 35、Android SDK Build-Tools、Android SDK Platform-Tools）。
-2. 用 Android Studio 打开本 android-app 目录，等待 Gradle 同步。
-3. 在 Android 手机打开开发者选项和 USB 调试，USB 连接后运行 app。
-4. 允许通知权限；点“模拟一次手表确认事件”，在状态栏点通知进入对话页。
+音频：
+默认关闭。用户主动启用并选择本地文件后，自动播放请求发出前检查蓝牙耳机连接状态。
+未检测到耳机则跳过，不主动选择扬声器作为替代输出。试听也会检查耳机连接状态。
+播放后的输出由系统路由决定，不能保证耳机断连或用户切换输出后的行为。
 
-后续 BLE 协议：黄山派为 GATT Server，手机为 GATT Client。黄山派通过 Event Notification 发 JSON 或二进制包：timestamp、score、threshold、signalQuality。收到后由 WatchBleService.onWatchConfirmed() 调用相同事件链路。
+对话：
+2026-09-18 评审版已内置腾讯云 HTTPS 服务地址和评审访问码，安装后可直接进入陪伴对话。
+无需电脑 SSH 中转、AutoDL 或与开发电脑共用局域网。点击底部“Coze · 陪伴对话”仍可修改
+HTTPS 服务根地址和评审访问码；地址末尾不要填写 /chat。更换服务会开始新对话。
+评审访问码随源码和 APK 公开，不属于保密凭据；Coze API Key 仅保留在后端环境变量。
+演示结束后可由维护者轮换访问码。公开访问码不能防止他人消耗服务额度。
+腾讯云 Web 函数部署见 backend/tencent_scf/README.md。在线服务受网络与模型额度限制，
+失败时 App 会显示请求失败，不会把预设文案伪装为模型回复。
 
-大模型接口：将 LargeLanguageModelGateway 的 LocalStubGateway 替换为 HTTPS 实现；API Key 不写入 APK，应由受控后端或用户安全存储提供。
+运行：
+可直接安装 artifacts/MoodAnchor-debug-20260918.apk；自行构建则按以下步骤操作：
+1. 使用 Android Studio 打开 android 目录并配置 SDK。
+2. 连接 Android 手机，构建并运行 App。
+3. 按需允许蓝牙与通知权限；连接手表后验证订阅、确认与记录流程。
+
+BLE 字段以 docs/BLE_PROTOCOL.md 为准。
+算法数据展示仅见 docs/ALGORITHM_METRICS.md 的 IMU 与 EDA 独立模态结果。

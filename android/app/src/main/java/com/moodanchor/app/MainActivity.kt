@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         content.addView(MoodUi.space(this, 24))
         val audioCard = MoodUi.card(this)
         audioCard.addView(MoodUi.title(this, "是非钟声", 21f))
-        audioCard.addView(MoodUi.body(this, "确认情绪事件后，仅通过已连接的蓝牙耳机播放你的私密钟声；不会从手机扬声器外放。", 15f).apply { setPadding(0, dp(8), 0, dp(18)) })
+        audioCard.addView(MoodUi.body(this, "主动启用后，自动播放前检查蓝牙耳机连接状态；未检测到耳机则跳过，不主动改用扬声器。", 15f).apply { setPadding(0, dp(8), 0, dp(18)) })
         audioCard.addView(MoodUi.button(this, "设置钟声", false).apply { setOnClickListener { startActivity(Intent(this@MainActivity, AudioAlertSettingsActivity::class.java)) } })
         content.addView(audioCard)
         content.addView(MoodUi.space(this, 24))
@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
         deviceCard.addView(MoodUi.space(this, 10))
         deviceCard.addView(MoodUi.button(this, "模拟一次确认事件", false).apply { setOnClickListener { receiveConfirmedEvent(.74f, .56f, "good") } })
         content.addView(deviceCard)
-        content.addView(MoodUi.body(this, "当前为演示模式 · 接入黄山派后由 BLE 自动触发", 12f).apply { setPadding(dp(4), dp(12), 0, 0) })
+        content.addView(MoodUi.body(this, "模拟分数 0.74 仅供交互演示，不代表实测概率；实际模型概率需手表端完成算法部署、校准和验证后上报。", 12f).apply { setPadding(dp(4), dp(12), 0, 0) })
         setContentView(ScrollView(this).apply { setBackgroundColor(Color.parseColor(MoodUi.BACKGROUND)); isFillViewport = true; addView(content) })
         if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestNotification.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
@@ -58,6 +58,6 @@ class MainActivity : AppCompatActivity() {
         val event = EventStore(this).save(score, threshold, quality)
         EventNotifier.notify(this, event)
         val played = BluetoothAudioAlert.playForConfirmedEvent(this)
-        Toast.makeText(this, if (played) "已记录、提醒，并在耳机中播放" else "已记录并发送提醒", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (played) "已记录、提醒，并已请求播放" else "已记录并发送提醒", Toast.LENGTH_SHORT).show()
     }
 }

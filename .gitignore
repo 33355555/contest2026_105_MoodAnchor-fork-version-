@@ -11,6 +11,11 @@
 *.pfx
 secrets/
 credentials/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/
+node_modules/
 local.properties
 **/local.properties
 

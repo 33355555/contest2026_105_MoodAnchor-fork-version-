@@ -28,7 +28,7 @@ class MoodCalendarActivity : AppCompatActivity() {
         }
         content.addView(MoodUi.body(this, "情绪回顾", 13f))
         content.addView(MoodUi.title(this, "情绪日历", 28f).apply { setPadding(0, dp(6), 0, dp(6)) })
-        content.addView(MoodUi.body(this, "选择日期，查看当天的情绪激动次数。", 15f).apply { setPadding(0, 0, 0, dp(18)) })
+        content.addView(MoodUi.body(this, "选择日期查看记录。模拟分数 0.74 仅供演示；记录可能含演示事件，不作为算法性能依据。", 15f).apply { setPadding(0, 0, 0, dp(18)) })
 
         val calendar = CalendarView(this)
         val calendarCard = MoodUi.card(this)

@@ -302,12 +302,12 @@ dump 里的 `sched_dumpstack: backtrace| N:` 行，N 是任务号，
 
 ```
 …0004 Data   (16 B, ~1 Hz)
-  0-1 GSR(u16 LE)  2 HR  3 SpO2  4 flags  5 mic  6 battery
+  0-1 GSR(u16 LE)  2-3 reserved  4 flags  5 mic  6 battery
   7-12 accel XYZ(i16 LE)  13-14 gyro(u16 LE)  15 mood(bit7=激动, bit0-6=置信度)
 
 …0005 Status (16 B, 仅电量变化时)
-  0 ver  1 flags  2-3 GSR  4 HR  5 SpO2  6-11 reserved  12 battery  13-15 reserved
+  0 ver  1 flags  2-3 GSR  4-11 reserved  12 battery  13-15 reserved
 ```
 
-接收端只读 `gsr / heartRate / spo2 / battery`，IMU 与麦克风它不解析。
+旧接收端保留兼容字段；当前方案只将 GSR 与电量字段作为对应有效数据，预留字节不代表已实现的传感能力。字段偏移保持兼容，不因文案调整而改变。
 详见 `BLE_PROTOCOL.md`。

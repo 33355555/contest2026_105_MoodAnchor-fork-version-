@@ -1,0 +1,13 @@
+#!/bin/bash
+# Tencent Cloud SCF Web Function launcher. `sh scf_bootstrap` works even when
+# a ZIP made on Windows does not preserve the executable bit.
+export PORT="${PORT:-9000}"
+set -eu
+# Tencent Cloud's console can unpack a ZIP under /var/user/src rather than
+# /var/user. Resolve beside this launcher instead of assuming either path.
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# Match the Python 3.10 runtime selected in the SCF console. The legacy
+# /var/lang/python3 path can select an older runtime without working SSL.
+PYTHON_BIN=/var/lang/python310/bin/python3.10
+"$PYTHON_BIN" -u -c 'import sys, ssl, urllib.request; assert hasattr(urllib.request, "HTTPSHandler"), "HTTPSHandler unavailable"; print("SCF runtime:", sys.executable, sys.version.split()[0], ssl.OPENSSL_VERSION, flush=True)'
+exec "$PYTHON_BIN" -u "$SCRIPT_DIR/server.py"
