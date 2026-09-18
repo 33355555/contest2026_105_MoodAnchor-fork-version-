@@ -77,7 +77,9 @@ class ChatActivity : AppCompatActivity() {
         val providerLabel = MoodUi.body(this, "Coze · 陪伴对话", 13f).apply {
             setPadding(dp(10), dp(9), dp(10), dp(9))
             background = MoodUi.rounded("#F5F7F4", 16, this@ChatActivity)
-            contentDescription = "当前对话服务：Coze"
+            contentDescription = "当前对话服务：Coze；点击设置服务地址"
+            isClickable = true
+            setOnClickListener { showServiceSettings() }
         }
         val send = TextView(this).apply {
             text = "↑"; textSize = 25f; gravity = Gravity.CENTER; setTextColor(Color.WHITE)
@@ -142,6 +144,8 @@ class ChatActivity : AppCompatActivity() {
 
     private fun createGateway() = CozeGateway(
         clientId = clientId,
+        baseUrl = ChatServiceConfig.read(this).endpoint,
+        accessToken = ChatServiceConfig.read(this).accessToken,
         conversationId = chatPreferences.getString("coze_conversation_id", null),
         startNewConversation = chatPreferences.getBoolean("coze_start_new_conversation", false),
         onConversationId = { id ->
@@ -151,6 +155,43 @@ class ChatActivity : AppCompatActivity() {
                 .apply()
         },
     )
+
+    private fun showServiceSettings() {
+        val current = ChatServiceConfig.read(this)
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(4), dp(22), 0)
+        }
+        val endpoint = EditText(this).apply {
+            hint = "https://<腾讯云函数地址>"
+            setText(current.endpoint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val accessToken = EditText(this).apply {
+            hint = "评审访问码（不是模型 Key）"
+            setText(current.accessToken)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        form.addView(MoodUi.body(this, "服务地址", 13f))
+        form.addView(endpoint)
+        form.addView(MoodUi.body(this, "评审访问码", 13f).apply { setPadding(0, dp(10), 0, 0) })
+        form.addView(accessToken)
+        form.addView(MoodUi.body(this, "地址和访问码由服务维护者提供；它们不是 Coze API Key。更换服务后将开始新对话。", 12f).apply { setPadding(0, dp(10), 0, 0) })
+        AlertDialog.Builder(this)
+            .setTitle("在线对话服务")
+            .setView(form)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("保存") { _, _ ->
+                runCatching { ChatServiceConfig.save(this, endpoint.text.toString(), accessToken.text.toString()) }
+                    .onSuccess {
+                        chatPreferences.edit().remove("coze_conversation_id").putBoolean("coze_start_new_conversation", true).apply()
+                        gateway = createGateway()
+                        addBubble("已更新服务设置；下一条消息将开始新对话。", false)
+                    }
+                    .onFailure { error -> addBubble(error.message ?: "服务设置无效。", false) }
+            }
+            .show()
+    }
 
     private fun addBubble(text: String, fromUser: Boolean): TextView {
         val line = LinearLayout(this).apply { gravity = if (fromUser) Gravity.END else Gravity.START; setPadding(0, dp(5), 0, dp(5)) }

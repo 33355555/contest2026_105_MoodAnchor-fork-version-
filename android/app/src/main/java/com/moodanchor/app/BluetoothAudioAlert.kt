@@ -8,8 +8,8 @@ import android.net.Uri
 import androidx.core.content.ContextCompat
 
 /**
- * Plays a user-selected local audio URI only when an active Bluetooth headset
- * is an output. Android then routes playback to the system-selected headset.
+ * Checks for a connected Bluetooth output before requesting playback of a
+ * user-selected local audio URI. Playback routing remains controlled by Android.
  */
 object BluetoothAudioAlert {
     private const val PREFS = "bluetooth_audio_alert"
@@ -49,7 +49,7 @@ object BluetoothAudioAlert {
         return start(context, uri)
     }
 
-    /** Preview ignores the enable switch, but never falls back to the phone speaker. */
+    /** Preview ignores the enable switch but checks for a Bluetooth output first. */
     fun preview(context: Context, uri: Uri?): Boolean {
         if (uri == null || !hasBluetoothHeadset(context)) return false
         return start(context, uri)

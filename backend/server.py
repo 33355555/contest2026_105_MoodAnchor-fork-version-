@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """MoodAnchor multi-model proxy (SiliconFlow Qwen + Coze); standard library only."""
 import json
+import hmac
 import os
 import re
 import time
@@ -8,7 +9,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import defaultdict, deque
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 
 SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "")
 QWEN_MODEL = os.environ.get("QWEN_MODEL", "Qwen/Qwen3-8B")
@@ -18,8 +20,16 @@ COZE_API_BASE = os.environ.get("COZE_API_BASE", "https://api.coze.cn")
 DEFAULT_PROVIDER = os.environ.get("DEFAULT_PROVIDER", "qwen").lower()
 PORT = int(os.environ.get("PORT", "8000"))
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT", "20"))
+DEMO_ACCESS_TOKEN = os.environ.get("DEMO_ACCESS_TOKEN", "")
+REQUIRE_DEMO_TOKEN = os.environ.get("REQUIRE_DEMO_TOKEN", "false").lower() == "true"
 visits = defaultdict(deque)
 coze_conversations = {}
+
+
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Compatibility implementation for runtimes without http.server.ThreadingHTTPServer."""
+
+    daemon_threads = True
 
 SYSTEM_PROMPT = (
     "你是‘是非钟’中的中文认知行为疗法（CBT）风格情绪陪伴助手。"
@@ -33,7 +43,7 @@ SYSTEM_PROMPT = (
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "MoodAnchor/0.2"
+    server_version = "MoodAnchor/0.3"
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -57,6 +67,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/chat":
             return self.send_json(404, {"error": "not_found"})
+        if REQUIRE_DEMO_TOKEN:
+            if not DEMO_ACCESS_TOKEN:
+                return self.send_json(503, {"error": "demo_not_configured", "detail": "评审服务尚未完成访问控制配置。"})
+            supplied = self.headers.get("Authorization", "")
+            expected = "Bearer " + DEMO_ACCESS_TOKEN
+            if not hmac.compare_digest(supplied, expected):
+                return self.send_json(401, {"error": "unauthorized", "detail": "评审访问码无效。"})
         ip = self.client_address[0]
         now = time.time()
         while visits[ip] and visits[ip][0] < now - 60:
@@ -65,6 +82,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(429, {"error": "too_many_requests"})
         visits[ip].append(now)
         try:
+            if not self.headers.get("Content-Type", "").lower().startswith("application/json"):
+                return self.send_json(415, {"error": "invalid_content_type", "detail": "请求必须为 JSON。"})
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 16384:
                 return self.send_json(400, {"error": "invalid_request_size"})
@@ -94,10 +113,14 @@ class Handler(BaseHTTPRequestHandler):
                 payload["model_id"] = QWEN_MODEL
             self.send_json(200, payload)
         except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")[:500]
-            self.send_json(502, {"error": "model_http_error", "detail": detail})
+            # Do not return the upstream body: it can include provider internals.
+            if exc.code == 429:
+                self.send_json(429, {"error": "model_rate_limited", "detail": "模型服务限流或额度受限，请稍后重试。"})
+            else:
+                self.send_json(502, {"error": "model_http_error", "detail": "模型服务请求失败，请维护者检查 Bot 配置与额度。"})
         except Exception as exc:
-            self.send_json(500, {"error": "server_error", "detail": str(exc)[:500]})
+            print("chat failed: %s" % str(exc)[:500], flush=True)
+            self.send_json(502, {"error": "model_unavailable", "detail": "暂时无法连接模型服务，请稍后重试。"})
 
     def log_message(self, fmt, *args):
         print("%s - %s" % (self.address_string(), fmt % args), flush=True)
@@ -176,7 +199,8 @@ def coze_chat(message, user_id, requested_conversation_id=None, new_conversation
                 data = json.loads(line[5:].strip())
                 if event_name == "conversation.chat.created" and data.get("conversation_id"):
                     coze_conversations[user_id] = data["conversation_id"]
-                elif event_name == "conversation.message.delta" and data.get("role") == "assistant":
+                elif (event_name == "conversation.message.delta" and data.get("role") == "assistant"
+                      and data.get("type") == "answer"):
                     parts.append(str(data.get("content", "")))
                 elif event_name == "conversation.chat.failed":
                     error = data.get("last_error") or {}

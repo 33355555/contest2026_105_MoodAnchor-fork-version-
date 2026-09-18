@@ -25,7 +25,7 @@ class MoodAudioPlaybackService : Service() {
         mediaSession = MediaSession(this, "MoodAnchorBell").apply {
             setMetadata(MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, "是非钟正在播放音频")
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, "私密钟声 · 仅蓝牙耳机")
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, "事件音频 · 播放请求前检查耳机")
                 .build())
             setCallback(object : MediaSession.Callback() {
                 override fun onPlay() = resumePlayback()
@@ -131,7 +131,7 @@ class MoodAudioPlaybackService : Service() {
 
     private fun createChannel() {
         val channel = NotificationChannel(CHANNEL_ID, "是非钟声播放", NotificationManager.IMPORTANCE_LOW).apply {
-            description = "私密钟声的系统媒体播放控制"
+            description = "事件音频的系统媒体播放控制"
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }

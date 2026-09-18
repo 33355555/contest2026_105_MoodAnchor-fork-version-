@@ -11,11 +11,12 @@ data class ChatReply(
 )
 
 /**
- * 演示期局域网 Coze 后端。后端保存 Coze 密钥，App 与用户均不接触模型密钥。
- * 部署公网 HTTPS 后，只需要替换此处的 BASE_URL 并关闭 cleartext 配置。
+ * Coze 后端。模型密钥仅保存在服务端；评审访问码可由用户在设置中临时输入。
  */
 class CozeGateway(
     private val clientId: String,
+    private val baseUrl: String,
+    private val accessToken: String,
     private var conversationId: String? = null,
     private var startNewConversation: Boolean = false,
     private val onConversationId: (String) -> Unit = {},
@@ -27,12 +28,13 @@ class CozeGateway(
             .put("client_id", clientId)
         if (!conversationId.isNullOrBlank()) body.put("conversation_id", conversationId)
         if (startNewConversation) body.put("new_conversation", true)
-        val connection = (URL("$BASE_URL/chat").openConnection() as HttpURLConnection).apply {
+        val connection = (URL("${baseUrl.trimEnd('/')}/chat").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 10_000
             readTimeout = 90_000
             doOutput = true
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            if (accessToken.isNotBlank()) setRequestProperty("Authorization", "Bearer $accessToken")
         }
         connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
         val response = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream)
@@ -52,9 +54,5 @@ class CozeGateway(
             conversationId = data.optString("conversation_id").takeIf { it.isNotBlank() },
             botId = data.optString("bot_id").takeIf { it.isNotBlank() },
         )
-    }
-
-    private companion object {
-        const val BASE_URL = "http://192.168.87.164:6006"
     }
 }
